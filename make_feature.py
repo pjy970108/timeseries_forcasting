@@ -1,6 +1,6 @@
 import pandas as pd
 from utils import csv_data, save_data
-import config
+from config import config 
 import pandas as pd
 from ta.momentum import (
     AwesomeOscillatorIndicator,

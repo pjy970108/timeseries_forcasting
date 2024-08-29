@@ -1,15 +1,16 @@
 import matplotlib.pyplot as plt
 from pytorch_lightning.callbacks import Callback
-import config
+from config import config
 from darts.utils.statistics import check_seasonality, plot_acf, plot_residuals_analysis, plot_hist, stationarity_test_kpss, stationarity_test_adf
 from darts.metrics.metrics import mse, r2_score, mape, mae, rmse
 
 class LossLoggingCallback(Callback):
-    def __init__(self, plot_file=f'{config.model_name}_loss_plot.png'):
+    def __init__(self, plot_file=None):
         super().__init__()
         self.train_losses = []
         self.val_losses = []
-        self.plot_file = plot_file
+        config.update_model_name()
+        self.plot_file = f'{config.model_name}_loss_plot.png'
 
     def on_train_epoch_end(self, trainer, pl_module):
         self.train_losses.append(trainer.callback_metrics["train_loss"].item())

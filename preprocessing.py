@@ -4,7 +4,7 @@ from darts.utils.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, maxabs_scale, minmax_scale
 from utils import load_data, save_data
 import joblib
-import config
+from config import config 
 
     
 class Fill_value(BaseDataTransformer):
@@ -43,13 +43,13 @@ class Fill_value(BaseDataTransformer):
         return transformed_series
 
 
-def make_timeseries(config):
+def make_timeseries(config, data):
     # 만약 경로에 target_column_features.pkl 파일이 있다면 해당 파일을 로드
     try:
         df = load_data(config.data_dir, f"{config.target_column}_features.pkl")
     except:
         # 데이터가 없다면 새로 만들어서 저장
-        print("변수 데이터를 생성해주세요...")
+        df = data
 
     fill_value = Fill_value()
     # 만약 공변량 데이터를 사용한다면    
@@ -114,7 +114,7 @@ def scale_timeseries(target_train, target_val, target_test, cov_train, cov_val, 
     target_val = transfrom(target_val, target_scaler)
     target_test = transfrom(target_test, target_scaler)
     if cov_train is None:
-        return target_train, target_val, target_test, target_scaler, None, None, None
+        return target_train, target_val, target_test, target_scaler, None, None, None, None
     else:
         cov_train, cov_scaler = fit_scale(cov_train, config.scaler)
         cov_val = transfrom(cov_val, cov_scaler)
@@ -123,37 +123,37 @@ def scale_timeseries(target_train, target_val, target_test, cov_train, cov_val, 
     return target_train, target_val, target_test, target_scaler, cov_train, cov_val, cov_test, cov_scaler
 
 
-def main_preprocessing(config):
+def main_preprocessing(config, data):
 
     # 데이터를 불러오고, 결측치를 채움
-    target_df, cov_df = make_timeseries(config)
+    target_df, cov_df = make_timeseries(config, data)
     # 데이터를 train, val, test로 나눔        
     target_train, target_val, target_test, cov_train, cov_val, cov_test = split_timeseries(target_df, cov_df, config)
-    save_data(target_train, config.data_dir, "not_norm_target_train.pkl")
-    save_data(target_val, config.data_dir, "not_norm_target_val.pkl")
-    save_data(target_val, config.data_dir, "not_norm_target_test.pkl")
-    if config.using_cov == True:
-        save_data(cov_train, config.data_dir, "not_norm_cov_train.pkl")
-        save_data(cov_val, config.data_dir, "not_norm_cov_val.pkl")
-        save_data(cov_test, config.data_dir, "not_norm_cov_test.pkl")
+    save_data(target_train, config, "not_norm_target_train.pkl")
+    save_data(target_val, config, "not_norm_target_val.pkl")
+    save_data(target_val, config, "not_norm_target_test.pkl")
+    if cov_train is not None:
+        save_data(cov_train, config, "not_norm_cov_train.pkl")
+        save_data(cov_val, config, "not_norm_cov_val.pkl")
+        save_data(cov_test, config, "not_norm_cov_test.pkl")
     # 데이터를 스케일링
     target_train, target_val, target_test, target_scaler, cov_train, cov_val, cov_test, cov_scaler = scale_timeseries(target_train, target_val, target_test, cov_train, cov_val, cov_test, config)
     
     if config.save_data == True:
-        if config.using_cov == True:
-            save_data(target_train, config.data_dir, "target_train.pkl")
-            save_data(target_val, config.data_dir, "target_val.pkl")
-            save_data(target_test, config.data_dir, "target_test.pkl")
-            save_data(cov_train, config.data_dir, "cov_train.pkl")
-            save_data(cov_val, config.data_dir, "cov_val.pkl")
-            save_data(cov_test, config.data_dir, "cov_test.pkl")
+        if cov_train is not None:
+            save_data(target_train, config, "target_train.pkl")
+            save_data(target_val, config, "target_val.pkl")
+            save_data(target_test, config, "target_test.pkl")
+            save_data(cov_train, config, "cov_train.pkl")
+            save_data(cov_val, config, "cov_val.pkl")
+            save_data(cov_test, config, "cov_test.pkl")
             joblib.dump(target_scaler, f'{config.data_dir}/{config.scaler}_target_scaler.pkl')
             joblib.dump(cov_scaler, f'{config.data_dir}/{config.scaler}_cov_scaler.pkl')
             print("데이터 저장 완료")
         else:
-            save_data(target_train, config.data_dir, "target_train.pkl")
-            save_data(target_val, config.data_dir, "target_val.pkl")
-            save_data(target_test, config.data_dir, "target_test.pkl")
+            save_data(target_train, config, "target_train.pkl")
+            save_data(target_val, config, "target_val.pkl")
+            save_data(target_test, config, "target_test.pkl")
             joblib.dump(target_scaler, f'{config.data_dir}/{config.scaler}_target_scaler.pkl')
             print("데이터 저장 완료")  
     
@@ -161,7 +161,10 @@ def main_preprocessing(config):
         
 
 def __main__():
-    target_train, target_val, target_test, cov_train, cov_val, cov_test, target_scaler, cov_scaler = main_preprocessing(config)
+    import utils
+    data = utils.load_data(config.data_dir, f"{config.target_column}_features.pkl")
+    config.using_cov = True
+    target_train, target_val, target_test, cov_train, cov_val, cov_test, target_scaler, cov_scaler = main_preprocessing(config, data)
 
 if __name__ == "__main__":
     __main__()
